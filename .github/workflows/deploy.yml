@@ -35,6 +35,13 @@ jobs:
         run: |
           pip install -r requirements.txt
 
+      - name: Run Snyk to check for vulnerable dependencies
+        uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --file=requirements.txt --severity-threshold=high
+
       - name: Run linter
         run: |
           python -m flake8 app.py tests/ --max-line-length=88
@@ -80,7 +87,25 @@ jobs:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      - name: Build and Push Docker Image
+      - name: Build Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: |
+            ${{ secrets.DOCKER_USER }}/python-app:${{ steps.vars.outputs.app_env }}
+            ${{ secrets.DOCKER_USER }}/python-app:${{ steps.vars.outputs.app_env }}-${{ github.sha }}
+
+      - name: Run Snyk to check Docker image for vulnerabilities
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: ${{ secrets.DOCKER_USER }}/python-app:${{ steps.vars.outputs.app_env }}
+          args: --severity-threshold=high --file=Dockerfile
+
+      - name: Push Docker Image
         uses: docker/build-push-action@v6
         with:
           context: .
