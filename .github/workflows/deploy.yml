@@ -38,11 +38,11 @@ jobs:
 
       - name: Run linter
         run: |
-          flake8 app.py tests/ --max-line-length=88
+          python -m flake8 app.py tests/ --max-line-length=88
 
       - name: Run tests
         run: |
-          pytest tests/ -v --tb=short
+          python -m pytest tests/ -v --tb=short
 
       - name: Check Flask application
         run: |
