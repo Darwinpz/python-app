@@ -115,13 +115,15 @@ jobs:
 
       - name: Run container with environment file
         run: |
-          docker run -d --name smoke-test --env-file .env.runtime -p 5000:5000 \
+          port="${{ vars.APP_PORT || secrets.APP_PORT }}"
+          echo "port=$port" >> "$GITHUB_ENV"
+          docker run -d --name smoke-test --env-file .env.runtime -p "$port:$port" \
             ${{ secrets.DOCKER_USER }}/python-app:${{ needs.build-and-push.outputs.app_env }}
 
       - name: Wait for container to be ready
         run: |
           for i in $(seq 1 10); do
-            if curl -sf http://localhost:5000/health; then
+            if curl -sf http://localhost:$port/health; then
               exit 0
             fi
             sleep 1
@@ -132,7 +134,7 @@ jobs:
 
       - name: Verify environment matches expected branch environment
         run: |
-          actual=$(curl -sf http://localhost:5000/health | python3 -c "import sys, json; print(json.load(sys.stdin)['environment'])")
+          actual=$(curl -sf http://localhost:$port/health | python3 -c "import sys, json; print(json.load(sys.stdin)['environment'])")
           expected="${{ needs.build-and-push.outputs.app_env }}"
           echo "Expected environment: $expected, Actual environment: $actual"
           if [ "$actual" != "$expected" ]; then
